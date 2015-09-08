@@ -158,7 +158,7 @@ class CodvotePlugin(b3.plugin.Plugin):
 
     def onGameEnd(self, event):
         """
-        Handle EVT_GAME_ROUND_END
+        Handle EVT_GAME_EXIT
         """
         if self._mapRequested:
             self.confirmMap()
