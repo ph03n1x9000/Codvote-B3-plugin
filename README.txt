@@ -25,3 +25,17 @@ Plugin behavior:
 - Admin at level 20 and up will not be affected by a kick vote. The plugin will refuse to initiate the vote against an admin.
 
 - There must be more than 1 players in game for vote to work. Unless vote is called by superadmin.
+
+
+Installation:
+1) Place "codvote.py" in "b3/extplugins" folder
+2) Place "codvote.ini" in "b3/extplugins/conf" folder
+3) If you are using b3.ini for config add this to plugin section:
+    codvote: @b3/extplugins/conf/codvote.ini
+   
+   If you are using b3.xml for config, add this to plugin section:
+    <plugin config="@b3/extplugins/conf/codvote.ini" name="codvote" />
+
+4) Restart B3  
+  
+
