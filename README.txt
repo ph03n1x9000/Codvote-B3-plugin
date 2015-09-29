@@ -1,6 +1,8 @@
 # Codvote-B3-plugin
 Vote plugin for Call of Duty Servers
 
+Note: Requires B3 v1.10.x
+
 Usage:
 !vote map <map name> - will immediately change map to <map name>
 !vote nextmap <map name> - will change the next map in rotation to <map name> 
