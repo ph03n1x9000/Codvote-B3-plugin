@@ -18,7 +18,7 @@
 __version__ = '1.0.0'
 __author__ = 'ph03n1x'
 
-import b3, time, threading, re
+import b3, threading
 import b3.plugin
 import b3.events
 
@@ -36,7 +36,7 @@ class CodvotePlugin(b3.plugin.Plugin):
     _mapRequested = None # Stores which map is being voted for
     _kickRequested = None  # Stores which player will be kicked if vote passed
     _default_messages = {
-        'tovote': 'Use ^2!yes ^7or ^2!no ^7 to vote',
+        'tovote': '^7Use ^2!yes ^7or ^2!no ^7 to vote',
         'map': "Map vote in progress: Change map to ^3$s^7?",
         'nextmap': "Next map vote in progress. Change next map to ^3$s^7?",
         'kick': "Kick vote in progress: Kick ^2$s^7?",
@@ -78,7 +78,6 @@ class CodvotePlugin(b3.plugin.Plugin):
         # Register events
         self.registerEvent('EVT_GAME_EXIT', self.onGameEnd)
 
-
     def onLoadConfig(self):
         # Load settings section
         try:
@@ -110,7 +109,6 @@ class CodvotePlugin(b3.plugin.Plugin):
                 except ValueError:
                     self._aVotes[entry.lower()] = adLvl[value]
             self.debug('Allowed votes are: %s' % self._aVotes)
-
 
     def getCmd(self, cmd):
         cmd = 'cmd_%s' % cmd
@@ -155,17 +153,15 @@ class CodvotePlugin(b3.plugin.Plugin):
             return False
 
     ############### NEXTMAP FUNCTIONING ################
-
     def onGameEnd(self, event):
         """
-        Handle EVT_GAME_EXIT
+        Handle EVT_GAME_ROUND_END
         """
         if self._mapRequested:
             self.confirmMap()
             self._mapRequested = None
 
     ############### CONFIRM VOTES ######################
-
     def confirmVote(self):
         self.console.say('^3Vote passed!^7')
         if self._vote == 'map':
@@ -194,10 +190,9 @@ class CodvotePlugin(b3.plugin.Plugin):
         elif self._vote == 'roundlimit':
             self.confirmRoundLimit()
         else:
-            self.console.say('^1Error 100^7: Unable to commit changes')
+            self.error('Unable to commit. Vote: %s, Value: %s'  % (self._vote, self._value))
         self._vote = None
         self._value = None
-        self._calltime = 0
         self._amt_no = []
         self._amt_yes = []
         self._allplayers = []
@@ -207,7 +202,6 @@ class CodvotePlugin(b3.plugin.Plugin):
             self.console.say('^3Vote failed!')
             self._vote = None
             self._value = None
-            self._calltime = 0
             self._amt_no = []
             self._amt_yes = []
             self._allplayers = []
@@ -308,7 +302,6 @@ class CodvotePlugin(b3.plugin.Plugin):
             cparams = 'scr_' + gt + '_roundlength'
             self.console.setCvar(cparams, setting)
 
-
     def confirmRoundLimit(self):
         setting = self._value
         amodes = ['ctf', 'sd', 're', 'bas', 'dom']
@@ -324,11 +317,10 @@ class CodvotePlugin(b3.plugin.Plugin):
             cparams = 'scr_' + gt + '_roundlimit'
             self.console.setCvar(cparams, setting)
 
-
     def getGameType(self):
-        expectedTypes = ['bel', 'dm', 're', 'sd', 'tdm', 'hq', 'dom', 'bas', 'ctf']
+        #expectedTypes = ['bel', 'dm', 're', 'sd', 'tdm', 'hq', 'dom', 'bas', 'ctf']
         gametype = self.console.getCvar('g_gametype').getString()
-        if gametype in expectedTypes:
+        if gametype:
             return gametype
         else:
             self.debug('Error getting gametype. Response is %s' % gametype)
@@ -358,11 +350,9 @@ class CodvotePlugin(b3.plugin.Plugin):
         else:
             return False
 
-
     #################################################################################
     #                       COMMANDS                                                #
     #################################################################################
-
     def cmd_vote(self, data, client, cmd=None):
         """\
         !vote <setting> <value> - vote to change setting or cvar on server.
@@ -395,6 +385,7 @@ class CodvotePlugin(b3.plugin.Plugin):
                 self._allplayers.insert(0, c)
         if playersInGame <= 1 and client.maxLevel < 100:
             client.message('^1ABORT^7: Not enough players in game to vote.')
+            self._vote = None
             return
 
         # Check if type of vote is allowed
@@ -407,12 +398,14 @@ class CodvotePlugin(b3.plugin.Plugin):
         v = self.checkIfAllowed(client, self._vote)
         if not v:
             client.message('You do not have permission to call this vote')
+            self._vote = None
 
         # Get further info for proper processing
         if self._vote == 'map' or self._vote == 'nextmap':
             q = self.mapvote(client, self._value)
             if not q:
-                self.debug('Cannot vote for maps. mapvote turned out false')
+                self.debug('Vote aborted: Cannot vote for maps. mapvote turned out false')
+                self._vote = None
                 return
 
         if self._vote == 'kick':
@@ -420,6 +413,8 @@ class CodvotePlugin(b3.plugin.Plugin):
             if self._kickRequested:
                 if self._kickRequested.maxLevel >= 20:
                     client.message('^1ABORTED^7: Cannot vote to kick admin!')
+                    self._vote = None
+                    self._value = None
                     return
                 self._value = self._kickRequested.name
             else:
@@ -430,7 +425,6 @@ class CodvotePlugin(b3.plugin.Plugin):
 
         # Start timer
         self.voteTimer()
-
 
     def cmd_allvotes(self, data, client, cmd=None):
         """\
@@ -447,7 +441,6 @@ class CodvotePlugin(b3.plugin.Plugin):
             client.message('Allowed votes are: %s' % x)
         elif len(allowed) == 0:
             client.message('You are not allowed to call any votes')
-
 
     def cmd_yes(self, data, client, cmd=None):
         """\
@@ -520,7 +513,6 @@ class CodvotePlugin(b3.plugin.Plugin):
             cmd.sayLoudOrPM(client, '^7Next Map: ^2%s' % mapname)
         else:
             client.message('^1Error:^7 could not get map list')
-
 
     def cmd_maprotate(self, data, client, cmd=None):
         """\
