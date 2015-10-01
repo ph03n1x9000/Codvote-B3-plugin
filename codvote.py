@@ -93,7 +93,7 @@ class CodvotePlugin(b3.plugin.Plugin):
             for (mapname, consolename) in self.config.items('votemaps'):
                 if mapname:
                     self._aMaps[mapname] = consolename
-            self.debug('Successfully entered maps for voting:', self._aMaps)
+            self.debug('Successfully entered maps for voting: %s' % self._aMaps)
 
         # Load votes section
         if self.config.has_section('votes'):
