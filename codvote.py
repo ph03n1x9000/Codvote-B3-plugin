@@ -14,8 +14,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+#
+# Changelog:
+# v1.0.1 - Fixed vote remaining in progress if vote cannot be called for incorrect input params.
 
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 __author__ = 'ph03n1x'
 
 import b3, threading
