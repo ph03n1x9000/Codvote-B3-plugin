@@ -135,9 +135,11 @@ class CodvotePlugin(b3.plugin.Plugin):
     ######################### MAP HANDLING ##############################
     def _search(self, maplist, partial):
         a = []
-        for k in maplist:
-            if partial in k:
-                a.append(k)
+        for mapname, consolename in maplist.iteritems():
+            if partial in mapname:
+                a.append(mapname)
+            elif partial in consolename:
+                a.append(mapname)
         return a
 
     def mapvote(self, client, wantedMap):
