@@ -14,6 +14,7 @@ Usage:
 !vote scorelimit <number> - Change score needed for victory to <number>
 !vote roundlength <number> - Change length of rounds to <number> in ctf and sd modes
 !vote roundlimit <number> - change amount of rounds game will go on for in ctf and sd modes to <number>
+!vote maps - Show the maps that can be voted on.
 !veto - Cancels the vote in progress
 
 
