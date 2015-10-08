@@ -16,9 +16,11 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 #
 # Changelog:
-# v1.0.1 - Fixed vote remaining in progress if vote cannot be called for incorrect input params.
+# v1.0.1 - Fixed vote remaining in progress if requirements for vote unmet.
+# v1.0.2 - Added  "!vote maps" to show what maps can be called into vote.
+#        - Fixed issue where person who called vote needed to vote as well. Changed to automatic yes vote.
 
-__version__ = '1.0.1'
+__version__ = '1.0.2'
 __author__ = 'ph03n1x'
 
 import b3, threading
@@ -315,15 +317,16 @@ class CodvotePlugin(b3.plugin.Plugin):
             try:
                 setting = int(setting)
             except ValueError:
-                self.debug('ERROR: Could not set new round limit. Voted value is not integer')
+                self.debug('Could not set new round limit. Voted value is not integer')
                 return
 
         if gt in amodes:
             cparams = 'scr_' + gt + '_roundlimit'
             self.console.setCvar(cparams, setting)
+        else:
+            self.debug('Could not set round limit as gametype do not have rounds')
 
     def getGameType(self):
-        #expectedTypes = ['bel', 'dm', 're', 'sd', 'tdm', 'hq', 'dom', 'bas', 'ctf']
         gametype = self.console.getCvar('g_gametype').getString()
         if gametype:
             return gametype
@@ -369,7 +372,7 @@ class CodvotePlugin(b3.plugin.Plugin):
 
         # Check if we have enough data for vote
         data = data.split()
-        if len(data) == 1 and data[0] == 'maprotate' or len(data) == 1 and data[0] == 'maprestart':
+        if len(data) == 1 and data[0] == 'maprotate' or len(data) == 1 and data[0] == 'maprestart' or len(data) == 1 and data[0] == 'maps':
             self._vote = data[0]
             self._value = data[0]
         elif len(data) == 2:
@@ -380,6 +383,21 @@ class CodvotePlugin(b3.plugin.Plugin):
         else:
             client.message('^1ERROR^7: Invalid usage. Type ^2!help vote ^7for info')
             return
+
+        # Check if player is asking what maps can be voted on
+        if self._vote == 'maps':
+            v1 = self.checkIfAllowed(client, 'map')
+            v2 = self.checkIfAllowed(client, 'nextmap')
+            if v1 or v2:
+                cmd.sayLoudOrPM(client, 'Vote enabled maps: ^2%s' % (('^7, ^2').join(self._aMaps.keys())))
+                self._vote = None
+                self._value = None
+                return
+            else:
+                client.message('^2You do not have permission to call map votes')
+                self._vote = None
+                self._value = None
+                return
 
         # Check if enough players in game to vote and store present players. Only players present at vote call can vote
         playersInGame = 0
@@ -404,6 +422,7 @@ class CodvotePlugin(b3.plugin.Plugin):
         if not v:
             client.message('You do not have permission to call this vote')
             self._vote = None
+            return
 
         # Get further info for proper processing
         if self._vote == 'map' or self._vote == 'nextmap':
@@ -420,16 +439,28 @@ class CodvotePlugin(b3.plugin.Plugin):
                     client.message('^1ABORTED^7: Cannot vote to kick admin!')
                     self._vote = None
                     self._value = None
+                    self._kickRequested = None
                     return
                 self._value = self._kickRequested.name
             else:
-                self.debug('could not parse the person to kick')
+                self.debug('could not get the person to kick')
+                self._vote = None
+                self._value = None
+                self._kickRequested = None
+                return
+
 
         # Seems like vote is ok. Broadcast to server
         self.sendBroadcast()
 
         # Start timer
         self.voteTimer()
+
+        # Set person who called vote as yes vote
+        self._amt_yes.insert(0, client)
+        if len(self._amt_yes) > (len(self._allplayers) / 2):
+            self.confirmVote()
+
 
     def cmd_allvotes(self, data, client, cmd=None):
         """\
@@ -461,12 +492,15 @@ class CodvotePlugin(b3.plugin.Plugin):
             client.message('Sorry, you cannot enter current vote')
             return
 
-        # Check if the player already voted
+        # Check if the player already voted. If not, register vote
         if client in self._amt_yes or client in self._amt_no:
             client.message('Are you drunk? You already voted!')
             return
         elif client not in self._amt_yes or client not in self._amt_no:
             self._amt_yes.insert(0, client)
+
+        # Let player know that vote is registered
+        client.message('^3Your vote has been entered')
 
         # Check if majority of players voted already
         vYes = len(self._amt_yes)
@@ -494,6 +528,9 @@ class CodvotePlugin(b3.plugin.Plugin):
             return
         elif client not in self._amt_yes or client not in self._amt_no:
             self._amt_no.insert(0, client)
+
+        # Let player know that vote is registered
+        client.message('^3Your vote has been entered')
 
         # Check if majority of players voted
         vNo = len(self._amt_no)
